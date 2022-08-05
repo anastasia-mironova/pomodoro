@@ -1,70 +1,125 @@
-import { useState, useEffect, useRef } from 'react';
-import { LinearProgress, Box } from '@mui/material';
-import { useDispatch, useSelector } from 'react-redux';
-import ActionButton from './ActionButton';
+import React, {useState, useEffect, useRef} from 'react';
+import {useDispatch, useSelector} from 'react-redux';
+import styled from '@emotion/styled';
+import {css} from '@emotion/react';
+import SettingsButtons from './Buttons/SettingsButtons';
+import {ButtonStyled} from './Buttons/ButtonStyled';
 
-export function Timer() {
-  const [isPaused, setIsPaused] = useState(true);
-  const [mode, setMode] = useState('pause');
-  const [secondsLeft, setSecondsLeft] = useState();
-  const [percentage, setPersentage] = useState(0);
-  const secondsLeftRef = useRef(secondsLeft);
-  const isPausedRef = useRef(isPaused);
-  const modeRef = useRef(mode);
-  const stateApp = useSelector((state) => state);
+const ButtonGroupWrapper = styled.div(css`
+  display: flex;
+  width: 50%;
+  align-items: center;
+  justify-content: space-between;
 
-  const totalSeconds = mode === 'work'
-    ? stateApp.workTime * 60
-    : stateApp.breakTime * 60;
-
-  console.log('timer', stateApp, totalSeconds);
-  function tick() {
-    secondsLeftRef.current--;
-    setPersentage(100 - Math.round(secondsLeftRef.current / totalSeconds * 100));
-    setSecondsLeft(secondsLeftRef.current);
+  span {
+    font-size: 20px;
+    margin: 0 5px;
   }
+`);
+const TimerWrapper = styled.div(css`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+`);
+const TimerTextStyled = styled.div(css`
+  font-size: 50px;
+`);
 
-  useEffect(() => {
-    function switchMode() {
-      const nextMode = modeRef.current === 'work' ? 'break' : 'work';
-      const nextSeconds = (nextMode === 'work' ? stateApp.workTime : stateApp.breakTime) * 60;
+function Timer() {
+    const stateApp = useSelector((state) => state);
+    const dispatch = useDispatch();
+    const [isPaused, setIsPaused] = useState(true);
+    const [mode, setMode] = useState('pause');
+    const [secondsLeft, setSecondsLeft] = useState(stateApp.workTime * 60);
+    const [timerTitle, setTimerTitle] = useState('Session');
+    const secondsLeftRef = useRef(secondsLeft);
+    const isPausedRef = useRef(isPaused);
+    const isBeepRef = useRef(null);
+    const modeRef = useRef(mode);
 
-      setMode(nextMode);
-      modeRef.current = nextMode;
-
-      setSecondsLeft(nextSeconds);
-      secondsLeftRef.current = nextSeconds;
+    function tick() {
+        secondsLeftRef.current -= 1;
+        setSecondsLeft(secondsLeftRef.current);
     }
 
-    secondsLeftRef.current = stateApp.workTime * 60;
-    setSecondsLeft(secondsLeftRef.current);
+    useEffect(() => {
+        function switchMode() {
+            const nextMode = modeRef.current === 'work' ? 'break' : 'work';
+            const nextSeconds = (nextMode === 'work' ? stateApp.workTime : stateApp.breakTime) * 60;
 
-    const interval = setInterval(() => {
-      if (isPausedRef.current) {
-        return;
-      }
-      if (secondsLeftRef.current === 0) {
-        return switchMode();
-        setPersentage(0);
-      }
+            setMode(nextMode);
+            modeRef.current = nextMode;
+            modeRef.current === 'work' ? setTimerTitle('Session') : setTimerTitle('Break');
+            setSecondsLeft(nextSeconds);
+            secondsLeftRef.current = nextSeconds;
+        }
 
-      tick();
-    }, 1000);
+        secondsLeftRef.current = stateApp.workTime * 60;
+        setSecondsLeft(secondsLeftRef.current);
 
-    return () => clearInterval(interval);
-  }, [stateApp]);
+        const interval = setInterval(() => {
+            if (isPausedRef.current) {
+                isBeepRef.current.pause();
+                return;
+            }
+            if (secondsLeftRef.current === 0) {
+                isBeepRef.current.play();
+                return switchMode();
+            }
 
-  const minutes = Math.floor(secondsLeft / 60);
-  let seconds = secondsLeft % 60;
-  console.log(isPaused, percentage, totalSeconds, secondsLeftRef.current);
-  if (seconds < 10) seconds = `0${seconds}`;
-  return (
-    <div>
-      <span>{`${minutes}:${seconds}`}</span>
-      <ActionButton onClick={() => { setIsPaused(!isPaused); isPausedRef.current = !isPaused; }} isPaused={isPaused} />
-      <Box sx={{ width: '300px' }}>
-        <LinearProgress variant="determinate" color="success" value={percentage} />
-      </Box>
-    </div>
-  );
+            tick();
+        }, 1000);
+
+        return () => clearInterval(interval);
+    }, [stateApp]);
+
+    let minutes = Math.floor(secondsLeft / 60);
+    let seconds = secondsLeft % 60;
+    seconds = seconds < 10 ? `0${seconds}` : seconds;
+    minutes = minutes < 10 ? `0${minutes}` : minutes;
+    return (
+        <TimerWrapper>
+            <span id="timer-label">{timerTitle}</span>
+            <TimerTextStyled id="time-left">{`${minutes}:${seconds}`}</TimerTextStyled>
+            <audio
+                id="beep"
+                preload="auto"
+                ref={isBeepRef}
+                src="https://raw.githubusercontent.com/freeCodeCamp/cdn/master/build/testable-projects-fcc/audio/BeepSound.wav"
+            />
+            <SettingsButtons/>
+            <ButtonGroupWrapper>
+                <ButtonStyled
+                    id="start_stop"
+                    color="blue"
+                    type="button"
+                    onClick={() => {
+                        setIsPaused(!isPaused);
+                        isPausedRef.current = !isPaused;
+                    }}
+                >
+                    {isPaused ? 'Start' : 'Pause'}
+                </ButtonStyled>
+                <ButtonStyled
+                    id="reset"
+                    color="red"
+                    type="button"
+                    onClick={() => {
+                        dispatch({type: 'RESET'});
+                        setIsPaused(true);
+                        isPausedRef.current = true;
+                        isBeepRef.current.pause();
+                        isBeepRef.currentTime = 0;
+                        setTimerTitle('Session');
+                    }}
+                >
+                    Reset
+                </ButtonStyled>
+            </ButtonGroupWrapper>
+        </TimerWrapper>
+
+    );
 }
+
+export default Timer;
