@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
-import { css } from '@emotion/react';
+import {css} from '@emotion/react';
 
-export const ButtonStyled = styled.button(({ color }) => css`
+export const ButtonStyled = styled.button(({color}) => css`
   height: 30px;
   width: 70px;
   display: flex;
@@ -22,6 +22,8 @@ export const ButtonStyled = styled.button(({ color }) => css`
 export const ButtonGroupWrapper = styled.div(css`
   display: flex;
   width: 100%;
+
+  min-width: 175px;
 
   align-items: center;
   justify-content: space-between;
