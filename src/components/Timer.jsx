@@ -37,6 +37,8 @@ function Timer() {
     const isPausedRef = useRef(isPaused);
     const isBeepRef = useRef(null);
     const modeRef = useRef(mode);
+    const [workTime, setWorkTime] = useState(25)
+    const [breakTime, setBreakTime] = useState(25)
 
     function tick() {
         secondsLeftRef.current -= 1;
@@ -95,8 +97,9 @@ function Timer() {
                     color="blue"
                     type="button"
                     onClick={() => {
-                        setIsPaused(!isPaused);
                         isPausedRef.current = !isPaused;
+                        setIsPaused(isPausedRef.current);
+
                     }}
                 >
                     {isPaused ? 'Start' : 'Pause'}
